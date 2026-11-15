@@ -1,0 +1,1010 @@
+---
+title: "Prawo Hotellinga w logistyce miejskiej. Analiza wzorca punktowego (PPA) automatów paczkowych (APM) w Warszawie"
+author: "Artur Stankiewicz"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    toc_depth: 2
+    code_folding: show
+    df_print: kable
+---
+
+```{=html}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+html, body, p, li, span, a, h1, h2, h3, h4, h5, h6,
+.table, table, th, td, pre, code, .tocify, .tocify-header, .tocify-subheader,
+.caption, label, input, button, select {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+body {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #1e293b;
+}
+h1, h2, h3, h4 {
+  font-weight: 700;
+  color: #0f172a;
+}
+.table, table {
+  font-family: "Inter", sans-serif !important;
+  font-size: 13px;
+}
+.table th, table th {
+  font-family: "Inter", sans-serif !important;
+  font-weight: 600;
+}
+.table td, table td {
+  font-family: "Inter", sans-serif !important;
+}
+.tocify {
+  font-family: "Inter", sans-serif !important;
+}
+</style>
+```
+
+```{r setup, include=FALSE}
+# Tworzymy folder WYKRESY, jeśli nie istnieje
+dir_wykresy <- "WYKRESY"
+if (!dir.exists(dir_wykresy)) dir.create(dir_wykresy, recursive = TRUE)
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.showtext = TRUE,
+  fig.path = "WYKRESY/",
+  dev = "png",
+  dpi = 300
+)
+
+# Pomocnicza funkcja do zapisu tabel do CSV z kodowaniem UTF-8
+zapisz_tabele <- function(dane, nazwa) {
+  sciezka <- file.path(dir_wykresy, paste0(nazwa, ".csv"))
+  write.csv(dane, sciezka, row.names = FALSE, fileEncoding = "UTF-8")
+}
+
+library(sysfonts)
+library(showtext)
+font_add_google("Inter", "Inter")
+showtext_auto()
+```
+
+# Część teoretyczna
+
+## Model Hotellinga: wprowadzenie teoretyczne
+
+Punkt wyjścia analizy stanowi opisywany w mikroekonomii model Hotellinga z 1929 roku, zgodnie z którym pomimo że optymalna społecznie, tak aby dystans między punktami z punktu widzenia klienta był jak najmniejszy, oraz "gospodarczo" lokalizacja biznesu wskazuje, że firmy powinny lokować swoje punkty w pewnej odległości między sobą, tak aby maksymalizować liczbę klientów, a tym samym uzyskiwany zysk, jednak zachowują się inaczej, a dokładnie lokalizują swoje firmy/punkty w jednym miejscu, tuż obok konkurenta, zagarniając tym samym po 1/2 rynku. Połowę rynku można też otrzymać, gdy firmy ulokują swoje punkty w punktach 1/4 i 3/4, co byłoby optymalne społecznie, lecz te punkty nie stanowią równowagi Nasha, bo jedna z firm może przesunąć swój punkt bliżej połowy, zagarniając tym samym większą część rynku, tym samym poprawiając swoją sytuację kosztem drugiej firmy.
+
+W przypadku większej liczby firm niż dwie... sprawa się komplikuje. Dla 3 firm równowaga wcale nie istnieje, bo każdy z graczy może przesunąć się, poprawiając tym samym swoją sytuację i pogarszając sytuację pozostałych dwóch graczy. Co gorsza, przy 3 firmach nie da się wyznaczyć równowagi Nasha. Dla 4 firm stabilnym rozwiązaniem okazuje się łączenie w pary, gdzie firmy grupują się po dwie w punktach 1/4 oraz 3/4.
+
+Eaton i Lipsey (1975) w swojej pracy rozwinęli model Hotellinga, a powyższe zjawisko nazwali zasadą lokalnego klastrowania, wykazując, że model Hotellinga jest poprawny jedynie dla 2 firm. W rzeczywistości, firmy mają tendencję do tworzenia lokalnych skupisk.
+
+## Literatura empiryczna: w świetle badań rynku APM
+
+Współczesna literatura empiryczna dotycząca alokacji punktów APM skupia swoje zainteresowanie wokół determinant kształtujących rozmieszczenie punktów. Schaefer i Figliozzi (2021) wykorzystując metodę Warda do wyznaczenia klastrów wskazali, że punkty zazwyczaj są położone bliżej dróg, często przy sklepach. Wskazują również, że dotychczasowa literatura wskazuje zmienne takie jak:
+
+- dochód,
+- dostęp do internetu,
+- rozbudowana infrastruktura drogowa i miejska,
+- zmienne demograficzne,
+
+które kształtują rozmieszczenie tych punktów w przestrzeni. Co więcej, wyniki ich badania uznają za przykład market failure: obszary peryferyjne o niższych dochodach i populacji mają znacznie gorszy dostęp do punktów APM w porównaniu ze ścisłym centrum Portland. Ma to też swoje uzasadnienie. Z praktycznego punktu widzenia, ma to sens ekonomiczny, ponieważ autorzy badali punkty Amazona, który w ramach subskrypcji oferuje darmową dostawę do domów. Z tego powodu, dywersyfikacja sposobu dostawy jest optymalna.
+
+Inne podejście prezentuje Xinwei Kang (2025), który używając metody DBSCAN oraz OLS/GWR wyznaczył determinanty alokacji punktów APM. Główne wnioski: gęstość sklepów, restauracji oraz przystanków autobusowych pozytywnie wpływa na intensywność punktów APM w danej jednostce terytorialnej. [DO ZMIANY: weryfikacja czy w badaniu Kanga był to ujemny wpływ zmiennej objaśniającej w modelu czy korelacja] Co ciekawe, w modelu Kanga gęstość APM wykazała ujemną korelację z liczbą stałych mieszkańców dzielnicy – wynika to ze specyfiki metropolii, gdzie automaty koncentrują się w ścisłym centrum biznesowym (wysoka populacja dzienna, niska populacja nocna rezydentów).
+
+## Cel pracy
+
+Celem pracy jest wyznaczenie zależności przestrzennych oraz identyfikacja kowariat kształtujących rozmieszczenie automatów paczkowych (APM) w Warszawie przy użyciu analizy wzorca punktowego (APM) oraz przestrzennego indeksu konkurencji rynkowej (sHHI).
+
+## Wprowadzenie
+
+Warszawa dysponuje jedną z najgęstszych sieci punktów odbioru paczek w Polsce. Na mapie Warszawy znajduje się 3773 automatów paczkowych (APM) operatorów takich jak InPost, DPD, DHL, Orlen Paczka oraz Allegro. Tak gęsta sieć rodzi fundamentalne pytania dotyczące rozmieszczenia oraz konkurencji przestrzennej pomiędzy operatorami. Do zbadania tego zjawiska wykorzystamy analizę wzorca punktowego, w ramach której wzorce można podzielić na 3 podstawowe typy:
+
+```{r wykres_typy_wzorcow, message=FALSE, warning=FALSE}
+library(spatstat)
+set.seed(2115)
+W<-owin(c(0,2), c(0,2))
+par(mfrow=c(1,3), mar=c(1, 1, 1, 1), family="Inter")
+plot(rpoispp(lambda=100, win=W), main="Losowy (CSR)", pch=16, cex=1, legend=FALSE)
+plot(rSSI(r=0.08, n=100, win=W), main="Regularny", pch=16, cex=1, legend=FALSE)
+plot(rMatClust(kappa=10, r=0.1, mu=10, win=W), main="Skupiony", pch=16, cex=1, legend=FALSE)
+```
+
+# Część praktyczna
+
+Analizę przeprowadzono w oparciu o kurs "Analiza wzorca punktowego i liniowego w R" prowadzonego przez dr Katerynę Zabarinę na Wydziale Nauk Ekonomicznych Uniwersytetu Warszawskiego oraz na podstawie artykułów naukowych wskazanych w bibliografii.
+
+```{r biblioteki, message=FALSE, warning=FALSE}
+requiredPackages<-c("sf", "spatstat", "rgugik", "automap",
+                      "magrittr", "sp", "rnaturalearth",
+                      "ggplot2", "tidyverse", "viridis", "osrm",
+                      "terra", "jsonlite", "sysfonts", "showtext")
+for(i in requiredPackages)
+  {if(!require(i, character.only=TRUE)) install.packages(i)}
+for(i in requiredPackages)
+  {library(i, character.only=TRUE)}
+
+Sys.setenv(LANG="en")
+font_add_google("Inter", "Inter")
+showtext_auto()
+windowsFonts(Inter=windowsFont("Inter"))
+theme_set(theme_minimal(base_family="Inter"))
+```
+
+## Wzorce oznaczone (marked) oraz nieoznaczone (unmarked)
+
+Zacznijmy od wczytania mapy oraz zbioru danych z punktami APM.
+
+```{r dane, message=FALSE, include=TRUE, echo=TRUE, results='hide'}
+#Pobieramy mapę Warszawy
+warszawa_granica<-suppressWarnings(borders_get(TERYT="1465")) #Pobieramy mapę Warszawy z GUGiK
+warszawa_granica<-st_transform(warszawa_granica, crs=2180) #Ustawiamy CRS na 2180, czyli odpowiedni dla Warszawy
+st_crs(warszawa_granica) #Sprawdzamy czy jest CRS 2180 po zmianie
+
+W<-as.owin(warszawa_granica)
+class(W) #Sprawdzamy jaki to obiekt
+area_km2<-as.numeric(st_area(warszawa_granica))/1e6 #Powierzchnia Warszawy w km²
+rsc<-sqrt(area.owin(W)/area_km2) #Zmieniamy z metrów na kilometry
+
+#Wczytujemy zbiór danych z punktami APM
+APM<-read.csv("Lista_APM.csv", fileEncoding="UTF-8-BOM") #Wczytujemy dane z pliku CSV
+
+APM_sf<-st_as_sf(APM, coords=c("lon", "lat"), crs=4326) #Kodujemy koordynaty punktów APM jako długość i szerokość geograficzną
+APM_sf<-st_transform(APM_sf, crs=2180) #Przechodzimy z CRS 4326 na 2180
+st_crs(APM_sf) #Sprawdzamy czy jest CRS 2180
+
+APM_waw<-st_intersection(APM_sf, warszawa_granica) %>% #Przycinamy dataset do Warszawy
+  filter(marka != "POCZTA POLSKA") %>% #Usuwamy automaty Poczty Polskiej
+  mutate(marka=factor(marka, levels=c("INPOST", "DPD", "Allegro", "ORLEN", "DHL")))
+```
+
+Sprawdźmy, ile mamy automatów paczkowych w zbiorze danych z podziałem na marki oraz narysujmy to na mapie Warszawy:
+
+```{r tabela_APM_summary, message=FALSE, warning=FALSE}
+t_apm<-table(APM_waw$marka)
+t_apm
+zapisz_tabele(as.data.frame(table(Marka = APM_waw$marka)), "tabela_01_liczba_APM_marka")
+```
+
+```{r wykres_mapa_paczkomatow, message=FALSE, warning=FALSE, out.width="100%"}
+p_mapa<-ggplot() +
+  geom_sf(data=warszawa_granica, fill="grey95", color="black", linewidth=0.6) +
+  geom_sf(data=APM_waw, aes(color=marka), size=1.5, alpha=0.7) +
+  scale_color_viridis_d(option="turbo", name="Marka") +
+  labs(title="Punkty APM w Warszawie", subtitle=paste("Łącznie", nrow(APM_waw), "punktów")
+  ) +
+  theme_minimal(base_family="Inter") +
+  theme(plot.title=element_text(family="Inter", size=14, face="bold"), text=element_text(family="Inter"))
+print(p_mapa)
+ggsave(file.path(dir_wykresy, "wykres_mapa_paczkomatow.png"), p_mapa, width=8, height=6, dpi=300)
+```
+
+Wyświetlmy podsumowanie wzorca unmarked, czyli takiego, który nie różnicuje punktów ze względu na markę. Jak widać, Warszawa w przybliżeniu zajmuje 517 km², a średnia intensywność punktów APM wynosi 7,4 punktu na km².
+
+```{r jitter_i_rescale_APM, message=FALSE, warning=FALSE, out.width="100%"}
+#Unmarked, wszystkie punkty APM bez rozróżnienia marki
+APM.ppp.um<-ppp(
+  x=st_coordinates(APM_waw)[, 1], #Współrzędne X
+  y=st_coordinates(APM_waw)[, 2], #Współrzędne Y
+  window=W) #Punkty w Warszawie
+
+APM.ppp.um<-rjitter(APM.ppp.um, 0.05, retry=TRUE) #Przesuwamy lekko punkty, żeby nie było duplikatów (o 0.05 metra).
+APM.ppp.um<-rescale.ppp(APM.ppp.um, rsc, "km") #Zmieniamy z metrów na kilometry
+summary(APM.ppp.um) #Wyświetlmy podsumowanie wzorca unmarked
+```
+
+Wyświetlmy też podsumowanie wzorca marked, czyli takiego, który różnicuje punkty ze względu na markę. W przypadku rozróżnienia punktów na markę, intensywność punktów jest zróżnicowana pomiędzy markami. W dodatku, intensywność ta jest zróżnicowana w przestrzeni, o czym więcej w późniejszej części pracy.
+
+```{r MARKED, message=FALSE, warning=FALSE, out.width="100%"}
+#Marka jako cecha punktów APM
+APM.ppp.m<-ppp(
+  x=st_coordinates(APM_waw)[, 1],
+  y=st_coordinates(APM_waw)[, 2],
+  window=W,
+  marks=as.factor(APM_waw$marka))
+
+APM.ppp.m<-rjitter(APM.ppp.m, 0.5)
+APM.ppp.m<-rescale.ppp(APM.ppp.m, rsc, "km")
+
+summary(APM.ppp.m) #Wyświetlamy podsumowanie wzorca
+```
+
+```{r wykres_mapy_marki, message=FALSE, warning=FALSE, out.width="100%"}
+split_ppp_m<-split(APM.ppp.m) #Dzielimy wzorzec marked na osobne ppp dla każdej marki
+
+par(mfrow=c(2,3), family="Inter", cex.main=1.4, cex.sub=1.1)
+plot(split_ppp_m[["Allegro"]], main="Allegro",        pch=16, cex=0.5, cols="#FF5A00")
+mtext(paste(npoints(split_ppp_m[["Allegro"]]), "APM"), side=1, line=2.5, cex=1.0)
+plot(split_ppp_m[["DHL"]], main="DHL",            pch=16, cex=0.5, cols="red")
+mtext(paste(npoints(split_ppp_m[["DHL"]]), "APM"), side=1, line=2.5, cex=1.0)
+plot(split_ppp_m[["DPD"]], main="DPD",            pch=16, cex=0.5, cols="green")
+mtext(paste(npoints(split_ppp_m[["DPD"]]), "APM"), side=1, line=2.5, cex=1.0)
+plot(split_ppp_m[["INPOST"]], main="InPost",         pch=16, cex=0.5, cols="blue")
+mtext(paste(npoints(split_ppp_m[["INPOST"]]), "APM"), side=1, line=2.5, cex=1.0)
+plot(split_ppp_m[["ORLEN"]], main="Orlen",          pch=16, cex=0.5, cols="orange")
+mtext(paste(npoints(split_ppp_m[["ORLEN"]]), "APM"), side=1, line=2.5, cex=1.0)
+```
+
+## Funkcje K, L, F, G oraz J. Koperty oraz test Clarka-Evansa
+
+Zanim przejdziemy do analizy poszczególnych funkcji, warto rozróżnić estymator jednorodny od niejednorodnego:
+
+- **funkcja homogeniczna** zakłada, że intensywność punktów w przestrzeni jest taka sama.
+- Odwrotnie jest w przypadku **funkcji niehomogenicznej**, która uwzględnia również występującą intensywność w przestrzeni. Jest ona bardziej odporna na występujące zróżnicowanie przestrzenne (np. w przypadku gęsto zaludnionych obszarów).
+
+A jak należy interpretować te funkcje? Charakterystyczne są:
+
+- pokrycia z funkcją Poissona, co może sugerować, że mamy do czynienia z CSR, rozkład czysto losowy,
+- funkcje nad lub pod funkcją Poissona, co sugeruje, że mamy do czynienia ze wzorcem (skupiony, a może regularny?),
+- maksima, punkty przecięcia oraz pokrycia z funkcją Poissona od określonej długości promienia.
+
+Zwróćcie proszę uwagę na różne skale osi x oraz y
+
+**Funkcja K Ripleya** mierzy ile punktów wpada do koła o promieniu **r** wokół losowo wybranego punktu, zwiększając stopniowo promień r. Następnie porównujemy wyniki z rozkładem losowym (CSR, Poisson).
+
+- **K(r) powyżej** linii Poisson sugeruje skupienie
+- **K(r) poniżej** linii Poisson sugeruje regularność
+
+**Wniosek:** Przebieg funkcji K-Ripleya wskazuje na wzorzec skupiony.
+
+```{r wykres_funkcja_K, message=FALSE, warning=FALSE, out.width="100%"}
+par(mfrow=c(1,2), mar=c(3,3,2,1), family="Inter", bty="l")
+K<-Kest(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(K, main="Homogeniczna",
+     xlab="r (km)", ylab="K(r)", legendpos="bottomright")
+Kin<-Kinhom(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(Kin, main="Niehomogeniczna",
+     xlab="r (km)", ylab="K(r)", legendpos="bottomright")
+```
+
+**Funkcja L** to transformacja funkcji K-Ripleya do postaci liniowej, zgodnie z: $L(r) = \sqrt{K(r)/\pi}$
+
+- **L(r) powyżej** linii Poisson sugeruje skupienie
+- **L(r) poniżej** linii Poisson sugeruje regularność
+
+**Wniosek:** analogiczny do funkcji K Ripleya :)
+
+```{r wykres_funkcja_L, message=FALSE, warning=FALSE, out.width="100%"}
+par(mfrow=c(1,2), mar=c(3,3,2,1), family="Inter", bty="l")
+L<-Lest(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(L, main="Homogeniczna",
+     xlab="r (km)", ylab="L(r)", legendpos="bottomright")
+Lin<-Linhom(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(Lin, main="Niehomogeniczna",
+     xlab="r (km)", ylab="L(r)", legendpos="bottomright")
+```
+
+Funkcję L można też przedstawić jako odchylenie od rozkładu czysto losowego CSR jako transformację $L(r) - r$. Zaznaczmy również promień 350 metrów:
+
+```{r wykres_funkcja_L_minus_r, message=FALSE, warning=FALSE, out.width="100%"}
+par(mfrow=c(1,2), mar=c(4,4,2.5,1), family="Inter", bty="l")
+plot(L, . - r ~ r, main="Homogeniczna: L(r) - r",
+     xlab="r (km)", ylab="L(r) - r", legendpos="bottomright")
+abline(v=0.35, col="red", lty=2, lwd=1.5)
+plot(Lin, . - r ~ r, main="Niehomogeniczna: L(r) - r",
+     xlab="r (km)", ylab="L(r) - r", legendpos="bottomright")
+abline(v=0.35, col="red", lty=2, lwd=1.5)
+par(mfrow=c(1,1))
+```
+
+**Funkcja F (pusta przestrzeń)** to funkcja, która mierzy odległość od pustej przestrzeni do najbliższego punktu APM.
+
+- **F(r) powyżej** linii Poisson sugeruje regularność
+- **F(r) poniżej** linii Poisson sugeruje skupienie
+
+**Wniosek:** F(r) poniżej linii Poissona sugeruje skupienie. Występuje więcej pustej przestrzeni między punktami APM, co jest charakterystyczne dla wzorca skupionego.
+
+```{r wykres_funkcja_F, message=FALSE, warning=FALSE, out.width="100%"}
+par(mfrow=c(1,2), mar=c(3,3,2,1), family="Inter", bty="l")
+Ffun<-Fest(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(Ffun, main="Homogeniczna",
+     xlab="r (km)", ylab="F(r)", legendpos="bottomright")
+Fin<-Finhom(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(Fin, main="Niehomogeniczna",
+     xlab="r (km)", ylab="F(r)", legendpos="bottomright")
+```
+
+**Funkcja G (nearest neighbour)** to funkcja, która mierzy odległość od punktu APM w przestrzeni do najbliższego punktu APM.
+
+- **G(r) powyżej** linii Poisson sugeruje skupienie
+- **G(r) poniżej** linii Poisson sugeruje regularność
+
+**Wniosek:** punkty stoją bliżej siebie niż w przypadku rozkładu Poissona.
+
+```{r wykres_funkcja_G, message=FALSE, warning=FALSE, out.width="100%"}
+par(mfrow=c(1,2), mar=c(3,3,2,1), family="Inter", bty="l")
+G<-Gest(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(G, main="Homogeniczna",
+     xlab="r (km)", ylab="G(r)", legendpos="bottomright")
+Gin<-Ginhom(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(Gin, main="Niehomogeniczna",
+     xlab="r (km)", ylab="G(r)", legendpos="bottomright")
+```
+
+**Funkcja J** służy do porównania czy mamy bardziej do czynienia z pustą przestrzenią (empty space, funkcja F) czy najbliższego sąsiada (nearest neighbour, funkcja G).
+
+- **J(r) powyżej 1** wskazuje, że silniejszy jest efekt funkcji F (regularność)
+- **J(r) poniżej 1** wskazuje, że silniejszy jest efekt funkcji G (skupienie)
+
+**Wniosek:** zdecydowanie silniejszy efekt funkcji G względem funkcji F.
+
+```{r wykres_funkcja_J, message=FALSE, warning=FALSE, out.width="100%"}
+par(mfrow=c(1,2), mar=c(3,3,2,1), family="Inter", bty="l")
+J<-Jest(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(J, main="Homogeniczna",
+     xlab="r (km)", ylab="J(r)", legendpos="bottomright")
+Jin<-Jinhom(APM.ppp.um, correction="border", rmax=3, r=seq(0, 3, by=0.05))
+plot(Jin, main="Niehomogeniczna",
+     xlab="r (km)", ylab="J(r)", legendpos="bottomright")
+par(mfrow=c(1,1), mar=c(5,4,4,2))
+```
+
+Narysowaliśmy funkcje i wstępnie sformułowaliśmy wnioski. Dla potwierdzenia wniosków posłużmy się innymi testami. Zacznijmy od kopert.
+
+W kopertach interesuje nas czy empiryczna funkcja, w naszym przypadku funkcja G, wychodzi poza szary obszar koperty. Szary zakres wynika z otrzymanych wartości minimum oraz maksimum funkcji CSR w drodze przeprowadzonej symulacji Monte Carlo. **Jeśli funkcja empiryczna:**
+
+- wychodzi poza szary obszar koperty: istnieją podstawy do odrzucenia hipotezy zerowej o CSR,
+- nie wychodzi poza szary obszar koperty: brak podstaw do odrzucenia hipotezy zerowej o CSR.
+
+Funkcja kopert pozwala nam na wybranie następujących atrybutów:
+
+- **nsim:** liczba symulacji Monte Carlo. Wybór nsim będzie potem definiował p-value. Dla kopert punktowych: 2/(nsim+1), dla kopert globalnych: 1/(nsim+1). Zazwyczaj wybieramy nsim spośród 19, 39, 99 (w zależności jaki poziom istotności nas interesuje. Im wyższe nsim tym lepiej),
+- **fix.n:** liczba punktów ma być zgodna z liczbą punktów w naszym zbiorze danych,
+- **correction:** dla ponad 3000 punktów automatycznie ustawione na "border",
+- **r:** możemy sami wyznaczyć maksymalny promień oraz co ile ma się on zmieniać,
+- **global:** koperta globalna (TRUE) lub punktowa (FALSE),
+- **typ funkcji:** możemy wybrać czy funkcja ma być homogeniczna/niehomogeniczna oraz typ funkcji.
+
+Wyróżniamy dwa typy kopert:
+
+**Koperta punktowa**, która oblicza kopertę dla funkcji G pozwala określić, w jakich odległościach dokładnie punkty APM się "grupują" (lub wręcz odwrotnie).
+
+```{r wykres_koperta_punktowa, message=FALSE, warning=FALSE, out.width="100%"}
+set.seed(2115)
+n_pacz<-npoints(APM.ppp.um)
+E.ptwise<-envelope(APM.ppp.um, Gest,
+                   nsim=99, #p-value = 2%
+                   fix.n=TRUE,
+                   correction="border",
+                   rmax=3,
+                   r=seq(0, 3, by=0.05),
+                   verbose=FALSE)
+par(family="Inter", bty="l")
+plot(E.ptwise, main=("Koperta punktowa"),
+     xlab="r (km)", ylab="G(r)", legendpos="bottomright")
+```
+
+**Koperta globalna**, która oblicza kopertę dla funkcji G wybiera jedną maksymalną oraz minimalną wartość z symulacji Monte Carlo i stosuje ją dla całej długości promienia r. Jest po prostu bardziej restrykcyjna względem koperty punktowej.
+
+```{r wykres_koperta_globalna, message=FALSE, warning=FALSE, out.width="100%"}
+set.seed(2115)
+E.global<-envelope(APM.ppp.um, Gest,
+                   nsim=99, #p-value = 1%
+                   rank=1,
+                   global=TRUE,
+                   correction="border",
+                   fix.n=TRUE,
+                   rmax=3,
+                   r=seq(0, 3, by=0.05),
+                   verbose=FALSE)
+par(family="Inter", bty="l")
+plot(E.global, main=paste0("Koperta globalna"),
+     xlab="r (km)", ylab="G(r)", legendpos="bottomright")
+```
+
+**Wniosek** z obu kopert jest jasny: punkty APM rozmieszczone są w przestrzeni zgodnie ze skupionym wzorcem.
+
+**Test Clarka-Evansa.** Postanowiłem sprawdzić dwie hipotezy alternatywne:
+
+- Hipoteza zerowa H0: punkty są zgodne z czysto losowym wzorcem (CSR),
+- H1(a): punkty są zgodne ze skupionym wzorcem,
+- H1(b): punkty są zgodne z regularnym wzorcem.
+
+Na podstawie poniższego testu istnieją podstawy do odrzucenia hipotezy zerowej o CSR na rzecz hipotezy alternatywnej H1(a) o skupieniu (p-value=2,2e-16):
+
+```{r clark_evans_cluster, message=FALSE, warning=FALSE, out.width="100%"}
+clarkevans.test(APM.ppp.um, alternative="clustered") #Hipoteza skupienia
+```
+
+Na podstawie poniższego testu nie ma podstaw do odrzucenia hipotezy zerowej o CSR na rzecz hipotezy alternatywnej H1(b) o regularności (p-value=1):
+
+```{r clark_evans_regular, message=FALSE, warning=FALSE, out.width="100%"}
+clarkevans.test(APM.ppp.um, alternative="regular") #Hipoteza regularności
+```
+
+**Wniosek**: testy wskazują jednoznacznie: punkty APM nie są rozmieszczone losowo, a zgodnie ze skupionym wzorcem.
+
+## Intensywność oraz relatywne ryzyko
+
+Intensywność to najprościej rzecz ujmując liczba punktów przypadająca na daną jednostkę przestrzenną (na przykład kilometr kwadratowy). Intensywność możemy przedstawić na dwa sposoby:
+
+**1.** podzielić mapę Warszawy na tak zwany "grid", czyli siatkę i przypisać każdej siatce punkty APM:
+
+```{r wykres_QDR_PLOT, message=FALSE, warning=FALSE, out.width="100%"}
+#Dzielimy mapę Warszawy na GRID, czyli siatkę 9x9
+qdr<-quadratcount(APM.ppp.um, nx=9, ny=9)
+par(family="Inter", bty="l")
+plot(qdr, main="Liczba punktów APM w kwadratach")
+```
+
+a następnie stworzyć mapę ciepła (punkty na km²):
+
+```{r wykres_INTENSYWNOSC, message=FALSE, warning=FALSE, out.width="100%"}
+#Intensywność w każdym polu (punkty/km²)
+par(family="Inter", bty="l")
+plot(intensity(qdr, image=TRUE), main="Intensywność punktów APM (punkty/km^2)")
+```
+
+**2.** narysować mapę ciepła używając do tego KDE (Kernel Density Estimation). Zacznijmy od wyboru sigmy. W praktyce, wartość sigmy oznacza rozmycie punktu w przestrzeni. Można wybrać dowolną wartość. Narysujmy 6 przykładowych sigm i zobaczmy jakie ma to przełożenie na mapę intensywności. Przy:
+
+- **Małej sigmie** rozmycie jest małe, widać lokalne punkty,
+- **Dużej sigmie** rozmycie jest duże, widać bardziej globalny trend.
+
+Co wybrać? To zależy na czym chcemy się dokładnie skupić: globalne trendy czy lokalna sytuacja?
+
+Zwróćcie proszę uwagę na różne przedziały legendy.
+
+```{r wykres_wybor_sigma, message=FALSE, warning=FALSE, out.width="100%"}
+sigmy<-c(0.1, 0.25, 0.35, 0.5, 0.7, 1)
+par(mfrow=c(2,3), mar=c(1,1,2,1), family="Inter")
+for(s in sigmy)
+  {plot(density(APM.ppp.um, sigma=s),
+  main=paste0("Sigma=", s,"km"),
+  ribbon=TRUE)}
+```
+
+Postanowiłem wybrać **sigmę = 0,35 km**, co wynika z analizy funkcji drugiego rzędu $L(r)-r$ oraz odpowiada około 5 minutom zasięgu pieszego mieszkańców. Oczywiście, można też użyć funkcji **bw.diggle**, która wybierze odpowiednią wielkość sigma na podstawie walidacji krzyżowej. Problem niestety polega na tym, że mapy stają się wtedy nieporównywalne pomiędzy markami (bo odległość do najbliższego punktu marki często jest zróżnicowana przestrzennie). Poniżej poziom bw.diggle dla poszczególnych marek:
+
+```{r tabela_sigma_marka, message=FALSE, warning=FALSE, out.width="100%"}
+sigma_marka<-sapply(split_ppp_m, bw.diggle)
+sigma_marka
+zapisz_tabele(data.frame(Marka = names(sigma_marka), Sigma_km = round(as.numeric(sigma_marka), 3)), "tabela_02_sigmy_marek_bw_diggle")
+```
+
+Dlatego dla ujednolicenia map, będę posługiwał się jedną wspólną sigmą.
+
+Narysujmy teraz mapy intensywności dla punktów APM łącznie oraz z podziałem na marki.
+
+Zwróćcie proszę uwagę na różne przedziały legendy.
+
+```{r wykres_KDE_marki, message=FALSE, warning=FALSE, out.width="100%"}
+sigma<-0.35 # 350 metrów (skala klastrowa)
+par(mfrow=c(2,3), mar=c(1,1,2,1), family="Inter")
+plot(density(APM.ppp.um, sigma=sigma), main="Łącznie", ribbon=TRUE)
+for(brand_name in names(split_ppp_m)) {
+  plot(density(split_ppp_m[[brand_name]], sigma=sigma),
+  main=brand_name,
+  ribbon=TRUE)
+}
+par(mfrow=c(1,1), mar=c(5,4,4,2))
+```
+
+I teraz najciekawsze: **relatywne ryzyko**. Przejdziemy przez każdy sposób wyrażenia relatywnego ryzyka, żeby lepiej zrozumieć, na czym tak właściwie to polega oraz jak należy interpretować otrzymany wynik. Przejdziemy przez 3 warianty, zaczynając od najprostszego idąc do tego najogólniejszego. Wszystko zależy od tego jakie parametry funkcji relrisk z pakietu Spatstat wybierzemy, możemy wybrać:
+
+- **relative**. Wartość TRUE obliczy nam iloraz intensywności jednej firmy względem drugiej. Wartości w tym przypadku mogą przyjmować wartości od 0 do nieskończoności.\
+  Wartość FALSE obliczy nam prawdopodobieństwo dzieląc intensywność jednej firmy względem sumy intensywności obu firm. Przyjmuje wartości od 0 do 1.
+- **case/control**. Określa, którą firmę wybierzemy jako tę znajdującą się w liczniku (case) lub mianowniku (control).
+- **przykładowo:** dla firm InPost (case) oraz DPD (control) będzie to liczone tak:
+
+**FALSE** Intensywność InPost / (Intensywność InPost + Intensywność DPD)\
+**TRUE** Intensywność InPost / Intensywność DPD
+
+```{r rr_setup, message=FALSE, warning=FALSE}
+#Musimy na początek wyznaczyć oddzielny subset, w którym będą znajdowały się tylko dwie marki
+APM_sub2<-APM.ppp.m[marks(APM.ppp.m) %in% c("INPOST", "DPD")]
+marks(APM_sub2)<-droplevels(marks(APM_sub2))
+```
+
+**Wariant 1**
+
+Ile razy częściej w danym miejscu występuje DPD względem InPost? W tym przypadku atrybuty funkcji to relative=TRUE oraz control="INPOST". Otrzymujemy następującą mapę:
+
+```{r wykres_rr1, message=FALSE, warning=FALSE, out.width="100%"}
+rr_1<-relrisk(APM_sub2, sigma=sigma, relative=TRUE, control="INPOST")
+# Na obrzeżach miasta bez InPostu w promieniu kilku sigma mianownik (Int_InPost) dąży do 0,
+# co daje skrajne wartości rzędu ~3e7 i niszczy skalę kolorów. Przycinamy wizualizację do 2,5
+rr_1_plot<-eval.im(pmin(rr_1, 2.5))
+par(family="Inter")
+plot(rr_1_plot, main="Int_DPD / Int_InPost (skala przycięta do 2,5)")
+```
+
+Na podstawie mapy widzimy, że na północnym zachodzie Warszawy są obszary, gdzie intensywność DPD jest 1,5 razy większa niż InPostu.
+
+**Wariant 2**
+
+Prawdopodobieństwo, że napotkany automat w danym miejscu należy do DPD (spośród automatów InPost oraz DPD). W tym przypadku mamy atrybut relative=FALSE, czyli w mianowniku otrzymamy sumę intensywności InPost + DPD. Zwróćcie uwagę na parametr case="DPD", to on sprawia, że DPD trafia do licznika.
+
+```{r wykres_rr2, message=FALSE, warning=FALSE, out.width="100%"}
+rr_2<-relrisk(APM_sub2, sigma=sigma, relative=FALSE, case="DPD")
+par(family="Inter")
+plot(rr_2, main="Int_DPD / (Int_DPD + Int_InPost)")
+```
+
+**Wniosek?** Dokładnie ten sam jak poprzednio, zmieniła się tylko skala. Zależało mi na przedstawieniu czym różni się funkcja relative ustawiona na TRUE względem FALSE, przy dwóch firmach zmienia się jedynie skala. W przypadku Wariantu 2 prawdopodobieństwo napotkania w tym miejscu automatu DPD wynosi około 60-70%.
+
+**Wariant 3**
+
+W wariancie trzecim mamy więcej marek niż dwie. Funkcja relrisk narysuje nam tym razem 5 map (bo tyle mamy marek w zbiorze). Możemy interpretować wynik jako dominację rynkową.
+
+- **Przykładowo:** czy firma posiada wyższą dominację w danym regionie niż w innych, w których posiada swoje APM?
+- **Odpowiedź:** DHL ma wyższą dominację rynkową na obrzeżach miasta niż w centrum.
+
+Zwróćcie proszę uwagę na różne przedziały legendy.
+
+```{r wykres_rr3, message=FALSE, warning=FALSE, out.width="100%"}
+rr_3<-relrisk(APM.ppp.m, sigma=sigma)
+par(family="Inter")
+plot(rr_3, main="Int_Marka / Suma intensywności wszystkich APM")
+```
+
+## Przestrzenny HHI (Kopczewski i Jaworski, 2026)
+
+W tej sekcji postanowiłem wykorzystać niedawno opublikowany artykuł napisany przez Tomasza Kopczewskiego oraz Norberta Jaworskiego (2026), pracowników Wydziału Nauk Ekonomicznych UW, którzy stworzyli indeks rywalizacji przestrzennej między oraz wewnątrz marek. Zachęcam do zapoznania się z ich artykułem: <https://doi.org/10.1080/17421772.2026.2692317>
+
+W tym celu wykorzystali **teselację Woronoja**. Algorytm dzieli mapę na wielokąty, w taki sposób, że każdy punkt ma bliżej do tego konkretnego automatu niż do jakiegokolwiek innego.
+
+Tradycyjny indeks HHI traktuje Warszawę jako punkt, sumując kwadraty udziałów rynku w skali całego miasta $HHI = \sum s_c^2$. W rzeczywistości przykładowo InPost może mieć 40% całego rynku w Warszawie, ale w konkretnej dzielnicy Warszawy... może sięgać ponad 60%. Tradycyjny indeks jest po prostu ślepy na przestrzenną heterogeniczność (zróżnicowanie). Kopczewski i Jaworski zaproponowali, aby połączyć komórki Woronoja z liczbą ludności.
+
+**Jak działa Przestrzenny sHHI?**
+
+Dla każdej komórki Woronoja wyliczamy:
+
+- **Liczbę mieszkańców** $P_i$ w danej komórce Woronoja,
+- **Gęstość zaludnienia w komórce:** $p_i = P_i / A_i$,
+- **Wagę przestrzenną (jak gęsto mieszkają)** $w_i$ ($w_i = p_i / \sum p_k$) oraz udział w całkowitej ludności $ms_i = P_i / \sum P_k$,
+- **Ważony przestrzennie udział rynkowy jednostki ($S_i$):** $$S_i = \frac{ms_i \cdot w_i}{\sum_k (ms_k \cdot w_k)}$$
+
+**Dwie metody badawcze**
+
+W artykule przedstawiono dwa podejścia do badania rynku. W pierwszej metodzie autorzy skupili się na całym rynku, biorąc pod uwagę wszystkie marki:
+
+- $sHHI_{\text{ALL}}$: w tym przypadku nie interesuje nas czy udział należy do konkretnej marki, a bardziej to czy udział jest rozproszony równomiernie w przestrzeni,
+- $sHHI_{\text{INTER}}$: tutaj interesuje nas czy automaty należą do konkretnej marki. Patrzymy na udział poszczególnej marki, a następnie sumujemy kwadraty udziałów,
+- **Luka kanibalizacji (Inter - ALL)** oraz zagnieżdżony indeks konkurencji $NSCI(\alpha = 0{,}60)$.
+
+**Przykład:**
+
+Każda maszyna dostaje swoją komórkę Woronoja, a jej udział jest wyliczony poprzez przestrzennie ważony udział rynkowy (zgodnie ze wzorem zapisanym w 4 punkcie):
+
+| Automat | Operator (marka) | Udział maszyny ($S_i$) | Kwadrat udziału ($S_i^2$) |
+|:-----------------|:-----------------|:----------------:|:----------------:|
+| Automat 1 (ścisłe centrum) | InPost | $0{,}40$ (40%) | $0{,}1600$ |
+| Automat 2 (węzeł metro/tramwaj) | DPD | $0{,}30$ (30%) | $0{,}0900$ |
+| Automat 3 (duże osiedle) | InPost | $0{,}15$ (15%) | $0{,}0225$ |
+| Automat 4 (boczna ulica) | DPD | $0{,}10$ (10%) | $0{,}0100$ |
+| Automat 5 (obrzeża) | Allegro | $0{,}05$ (5%) | $0{,}0025$ |
+| SUMA | — | $1{,}00$ (100%) | $0{,}2850$ |
+
+**Wyniki dla przykładu:**
+
+- $sHHI_{\text{ALL}}$ (bez patrzenia na marki): $0{,}1600 + 0{,}0900 + 0{,}0225 + 0{,}0100 + 0{,}0025 = \mathbf{0{,}2850}$\
+- $sHHI_{\text{INTER}}$ (łączymy udziały w ramach marek): InPost ($0{,}40 + 0{,}15 = 0{,}55$), DPD ($0{,}30 + 0{,}10 = 0{,}40$), Allegro ($0{,}05$) $\implies 0{,}55^2 + 0{,}40^2 + 0{,}05^2 = 0{,}3025 + 0{,}1600 + 0{,}0025 = \mathbf{0{,}4650}$\
+- **Luka kanibalizacji** ($\Delta = sHHI_{\text{INTER}} - sHHI_{\text{ALL}}$): $0{,}4650 - 0{,}2850 = \mathbf{0{,}1800}$ (efekt posiadania wielu maszyn przez te same firmy: $2 \cdot 0{,}40 \cdot 0{,}15 + 2 \cdot 0{,}30 \cdot 0{,}10 = 0{,}1800$)\
+- Zagnieżdżony indeks $NSCI(\alpha = 0{,}60)$: $0{,}60 \cdot 0{,}4650 + 0{,}40 \cdot 0{,}2850 = \mathbf{0{,}3930}$.
+
+Metoda druga sprawdza, co by było gdyby dana sieć była jedynym operatorem w danym mieście? Dzięki temu możemy zbadać zarówno wewnętrzną kanibalizację u operatora ($sHHI_{\text{INTRA}}$), jak i równomierność pokrycia miasta:
+
+- **InPost (Lider):** ma aż 1 413 maszyn, gęsto rozsianych po całym mieście, mniej więcej pokrywając miasto z tą samą wielkością komórek Woronoja, więc jego wskaźnik $sHHI_{\text{INTRA}}$ jest bardzo niski (maszyny stoją gęsto i silnie kanibalizują własny popyt).
+- **DPD (Pretendent):** ma 848 maszyn i skupia się w wybranych miejscach, omijając peryferia. Na peryferiach powstają wielkie strefy, przez co wskaźnik $sHHI_{\text{INTRA}}$ jest wyższy.
+
+```{r voronoi_shhi_setup, message=FALSE, warning=FALSE}
+# Wczytujemy raster WorldPop 2026 (100 m) i przycinamy do Warszawy
+r_pop_raw<-rast("pol_pop_2026_CN_100m_R2025A_v1.tif")
+r_pop_waw<-crop(r_pop_raw, vect(st_transform(warszawa_granica, 4326)))
+```
+
+Kod napisany przez prof. Kopczewskiego oraz Jaworskiego, dostępny w ich artykule:
+
+```{r funkcja_compute_chain_voronoi, message=FALSE, warning=FALSE}
+compute_chain_voronoi<-function(pts_sf, boundary_sf, r_pop_rast) {
+  #1 Tworzymy komórki Woronoja
+  env_u<-st_union(boundary_sf)
+  vor_sfc<-st_voronoi(st_union(st_geometry(pts_sf)), envelope=env_u)
+  vor_polys<-st_collection_extract(vor_sfc, "POLYGON")
+  vor_sf<-st_sf(geometry=vor_polys, crs=2180)
+  vor_sf<-suppressWarnings(st_intersection(vor_sf, env_u))
+  vor_sf$tile_id<-seq_len(nrow(vor_sf))
+  vor_sf$area_km2<-as.numeric(st_area(vor_sf))/1e6
+  
+  #2 Liczba mieszkańców z WorldPop 100 m
+  vor_4326<-st_transform(vor_sf, 4326)
+  pop_ext<-terra::extract(r_pop_rast, vect(vor_4326), fun=sum, na.rm=TRUE)
+  vor_sf$pop_val<-pop_ext[,2]
+  vor_sf$pop_val[is.na(vor_sf$pop_val)]<-0
+  
+  #3 Ważenie przestrzenne S_i
+  Pi<-vor_sf$pop_val
+  Ai<-pmax(vor_sf$area_km2, 1e-6)
+  pi<-Pi/Ai # Lokalna gęstość zaludnienia
+  wi<-pi/sum(pi, na.rm=TRUE) #Waga przestrzenna
+  ms<-Pi/sum(Pi, na.rm=TRUE) #Udział w całości populacji
+  
+  S_i<-ms*wi
+  S_i<-S_i/sum(S_i, na.rm =TRUE) #Znormalizowany udział przestrzenny
+  
+  vor_sf$S_i<-S_i
+  sHHI_val<-sum(S_i^2, na.rm=TRUE)
+  list(vor=vor_sf, sHHI=sHHI_val, N=nrow(vor_sf))
+}
+```
+
+Kod dla obu metod:
+
+```{r obliczenia_shhi_wykonanie, message=FALSE, warning=FALSE}
+#Metoda 1: cały rynek (ALL)
+res_all<-compute_chain_voronoi(APM_waw, warszawa_granica, r_pop_waw)
+vor_all<-res_all$vor
+sHHI_ALL<-res_all$sHHI
+
+#Przypisujemy markę do każdej komórki w siatce ogólnej
+vor_all<-st_join(vor_all, APM_waw %>% dplyr::select(marka), join=st_contains)
+if (any(is.na(vor_all$marka))) {
+  nn_idx<-st_nearest_feature(st_centroid(vor_all[is.na(vor_all$marka), ]), APM_waw)
+  vor_all$marka[is.na(vor_all$marka)]<-APM_waw$marka[nn_idx]
+}
+
+#Udziały rynkowe sieci (S_c) oraz indeks sHHI_INTER
+chain_shares<-vor_all %>%
+  st_drop_geometry() %>%
+  group_by(marka) %>%
+  summarise(S_c=sum(S_i, na.rm=TRUE), N=n(), .groups="drop") %>%
+  mutate(Udzial_proc=round(S_c*100, 1))
+
+sHHI_INTER<-sum(chain_shares$S_c^2, na.rm=TRUE)
+cannibalization_gap<-sHHI_INTER - sHHI_ALL
+NSCI_06<-0.6*sHHI_INTER + 0.4*sHHI_ALL
+
+#Metoda 2: Intra dla sieci Inpost oraz DPD
+res_inpost<-compute_chain_voronoi(APM_waw %>% filter(marka=="INPOST"), warszawa_granica, r_pop_waw)
+res_dpd<-compute_chain_voronoi(APM_waw %>% filter(marka=="DPD"),    warszawa_granica, r_pop_waw)
+```
+
+Zobaczmy najpierw, jak rozkładają się przestrzenne udziały ($S_c$) pomiędzy poszczególnych operatorów oraz jaki jest wkład każdej marki ($S_c^2$) w wartość indeksu $sHHI_{\text{INTER}}$:
+
+```{r tabela_udzialy_marek, message=FALSE, warning=FALSE}
+df_udzialy_marek<-chain_shares %>%
+  arrange(desc(S_c)) %>%
+  transmute(
+    Marka=marka,
+    Liczba_maszyn=N,
+    Udzial_S_c=round(S_c, 4),
+    Udzial_proc=Udzial_proc,
+    Kwadrat_S_c2=round(S_c^2, 5)
+  )
+
+knitr::kable(df_udzialy_marek, caption="")
+zapisz_tabele(df_udzialy_marek, "tabela_03_udzialy_marek_shhi")
+```
+
+**Podsumowanie w tabeli:**
+
+```{r tabela_shhi_wyniki_ogolne, message=FALSE, warning=FALSE}
+df_shhi_ogolne<-data.frame(
+  Wskaźnik = c("sHHI_ALL (koncentracja punktowa)",
+               "sHHI_INTER (koncentracja sieciowa)",
+               "Luka kanibalizacji",
+               "Zagnieżdżony indeks NSCI (alfa=0.60)"),
+  Wartość = c(round(sHHI_ALL, 5),
+              round(sHHI_INTER, 5),
+              round(cannibalization_gap, 5),
+              round(NSCI_06, 5)),
+  Interpretacja = c(
+    "Nie ma takiego punktu APM, który zabierałby sporą część rynku na mapie Warszawy. Innymi słowy, nie istnieje taki punkt APM, który byłby swego rodzaju monopolistą na mapie Warszawy, bo wartość sHHI_ALL jest stosunkowo niska, choć nadal ponad 2 razy większa niż w przypadku benchmarku 1/N.",
+    "Rynek jest stosunkowo zdominowany przez niektóre marki. Sam indeks nie wskazuje jednak o którą markę chodzi, choć możemy to wyczytać z tabeli udziałów rynkowych.",
+    "Sama w sobie pojedyncza maszyna nie powoduje dominacji rynkowej. Siła danej marki bierze się z dużej liczby automatów, które dzielą między sobą popyt.",
+    "Powstał w wyniku połączenia sHHI_INTER (w=0.6) wraz z sHHI_ALL (w=0.4). Zaproponowany przez autorów indeks, który z jednej strony mierzy koncentrację między markami (czy rynek jest zdominowany przez niektórych graczy), a z drugiej strony czy popyt skupia się w pojedynczych automatach czy rozkłada się pomiędzy różnymi punktami APM."
+  )
+)
+
+knitr::kable(df_shhi_ogolne, caption = "")
+zapisz_tabele(df_shhi_ogolne, "tabela_04_shhi_wyniki_ogolne")
+```
+
+Porównajmy teraz wskaźniki wewnątrzsieciowe ($sHHI_{\text{INTRA}}$) dla InPostu i DPD:
+
+```{r tabela_intra_comp, message=FALSE, warning=FALSE}
+df_intra<-data.frame(
+  Operator = c("INPOST", "DPD"),
+  Rola_w_modelu=c("Lider", "Pretendent"),
+  Liczba_maszyn=c(res_inpost$N, res_dpd$N),
+  Udzial_w_popycie_proc=c(
+    chain_shares$Udzial_proc[chain_shares$marka=="INPOST"],
+    chain_shares$Udzial_proc[chain_shares$marka=="DPD"]
+  ),
+  sHHI_INTRA = c(round(res_inpost$sHHI, 5), round(res_dpd$sHHI, 5)),
+  Minimum_teoretyczne = c(round(1/res_inpost$N, 5), round(1/res_dpd$N, 5))
+) %>%
+  mutate(Asymetria_pokrycia=round(sHHI_INTRA/Minimum_teoretyczne, 2))
+
+knitr::kable(df_intra, caption="")
+zapisz_tabele(df_intra, "tabela_05_porownanie_intra_inpost_dpd")
+```
+
+**Wnioski:**
+
+- **sHHI_ALL = 0,00074:** Nie istnieje pojedynczy automat monopolista przejmujący dużą część rynku w skali całej Warszawy (wartość jest bardzo niska, choć nadal `2,80×` wyższa od teoretycznego benchmarku pełnej równomierności $1/N = 0{,}00027$).
+- **sHHI_INTER = 0,26195:** Na poziomie marek rynek jest wyraźnie skoncentrowany. Sam indeks nie wskazuje nazwy lidera, ale z tabeli udziałów widać, że **InPost** kontroluje `40,1%` przestrzennego popytu, a **DPD** `20,9%`.
+- **Luka kanibalizacji** $\Delta = 0,26121$: Przewaga marek nie bierze się z pojedynczej maszyny, lecz z bardzo dużej liczby automatów i nakładania się na rywali. Marki stawiają maszyny tak gęsto, że przejmują ruch zarówno od konkurencji, jak i od własnych sąsiednich automatów (autokanibalizacja).
+- **Zagnieżdżony indeks** $NSCI(0{,}60) = 0,15747$: Łączy dominację na poziomie marek ($w = 0{,}6$) ze skupieniem popytu na poziomie pojedynczych punktów ($1 - w = 0{,}4$).
+- **Porównanie InPost vs DPD (`sHHI_INTRA`):** InPost ma najniższy wskaźnik `0,00136` i asymetrię pokrycia **`1,92×`** (równomierne pokrycie miasta przy silnej autokanibalizacji), podczas gdy DPD osiąga `0,00270` i asymetrię **`2,29×`** (większa koncentracja w wybranych dzielnicach).
+
+**Narysujmy teraz 3 mapy:**
+1. Cały rynek w obecności konkurentów (ALL),
+2. Sam InPost na własnej siatce Woronoja (INTRA InPost),
+3. Samo DPD na własnej siatce Woronoja (INTRA DPD).
+
+Dla pełnej czytelności zastosujemy stały krok legendy co 0,25‰ (1‰ oznacza jedną tysięczną całego rynku w Warszawie, więc całe miasto to 1000‰):
+
+```{r wykres_tripanel_voronoi, message=FALSE, warning=FALSE, fig.width=14, fig.height=5.2, out.width="100%"}
+if (!require(patchwork, quietly = TRUE)) {
+  install.packages("patchwork", repos = "https://cloud.r-project.org")
+  library(patchwork)
+}
+
+#Równe progi skali w promilach
+breaks_p<-c(0.00, 0.25, 0.50, 0.75, 1.00, Inf)
+labels_p<-c("0.00 – 0.25 ‰", "0.25 – 0.50 ‰", "0.50 – 0.75 ‰", "0.75 – 1.00 ‰", "> 1.00 ‰")
+pal_tri<-c("#fef08a", "#f97316", "#c026d3", "#7c3aed", "#311042")
+
+prep_vor_panel<-function(vor_sf, title_text, subtitle_text) {
+  vor_sf$S_permille<-vor_sf$S_i*1000
+  vor_sf$S_bin<-cut(vor_sf$S_permille, breaks=breaks_p, labels=labels_p, include.lowest=TRUE)
+  
+  ggplot() +
+    geom_sf(data =vor_sf, aes(fill=S_bin), color="grey35", linewidth=0.08) +
+    scale_fill_manual(values=pal_tri, name="Udział S_i (‰):", drop=FALSE) +
+    labs(title=title_text, subtitle=subtitle_text) +
+    theme_void(base_family="Inter") +
+    theme(
+      text=element_text(family="Inter"),
+      plot.title=element_text(family="Inter", face="bold", size=12, hjust=0.5, color ="#0f172a"),
+      plot.subtitle=element_text(family="Inter", size=9.5, hjust=0.5, color ="#475569", margin=margin(b = 4)),
+      legend.position="bottom",
+      legend.title=element_text(family="Inter", face="bold", size=10),
+      legend.text=element_text(family="Inter", size=9)
+    )
+}
+
+p1<-prep_vor_panel(
+  vor_all,
+  "1. CAŁY RYNEK (ALL)",
+  sprintf("N = %d APM | sHHI_ALL = %.5f | sHHI_INTER = %.3f", nrow(vor_all), sHHI_ALL, sHHI_INTER)
+)
+
+p2<-prep_vor_panel(
+  res_inpost$vor,
+  "2. INTRA INPOST (Lider)",
+  sprintf("N = %d APM | sHHI_INTRA = %.5f (Udział: %.1f%%)", res_inpost$N, res_inpost$sHHI, chain_shares$Udzial_proc[chain_shares$marka=="INPOST"])
+)
+
+p3<-prep_vor_panel(
+  res_dpd$vor,
+  "3. INTRA DPD (Główny pretendent)",
+  sprintf("N = %d APM | sHHI_INTRA = %.5f (Udział: %.1f%%)", res_dpd$N, res_dpd$sHHI, chain_shares$Udzial_proc[chain_shares$marka=="DPD"])
+)
+
+#Łączymy w 1 wiersz z jedną wspólną legendą na dole
+p_tripanel<-p1 + p2 + p3 + plot_layout(guides="collect") & theme(legend.position="bottom")
+
+dir.create("output/figures", showWarnings=FALSE, recursive=TRUE)
+ggsave("output/figures/poster_fig1_voronoi_tripanel.png", plot=p_tripanel, width=14, height=5.2, dpi=600)
+ggsave("output/figures/poster_fig1_voronoi_tripanel.svg", plot=p_tripanel, width=14, height=5.2)
+ggsave(file.path(dir_wykresy, "wykres_tripanel_voronoi.png"), plot=p_tripanel, width=14, height=5.2, dpi=600)
+ggsave(file.path(dir_wykresy, "wykres_tripanel_voronoi.svg"), plot=p_tripanel, width=14, height=5.2)
+ggsave(file.path(dir_wykresy, "wykres_tripanel_voronoi.svg"), plot=p_tripanel, width=14, height=5.2)
+
+print(p_tripanel)
+```
+
+## Modelowanie ekonometryczne: Co naprawdę przyciąga paczkomaty? (PPM vs Thomas)
+
+Przeanalizowaliśmy rozkład i zależności przestrzenne automatów w Warszawie, teraz przyszedł czas na pytanie jakie czynniki powodują, że automaty są rozmieszczone w takim a nie innym miejscu. W swojej pracy postanowiłem zbadać czy o danej lokalizacji decyduje codzienna aktywność miejska mieszkańców, zarówno liczba osób mieszkających w okolicy jak i ruch w miejscach, przez które przechodzimy na co dzień (wysiadając z komunikacji miejskiej czy robiąc zakupy). W tym celu przygotowałem 4 determinanty (kowariaty):
+
+1.  Odległość od przystanków komunikacji miejskiej ZTM (`dist_stop_im`) – węzły przesiadkowe generujące ruch pieszy,
+2.  Odległość od sklepów typu Convenience (`dist_conv_im`) – reprezentowanych głównie przez sieć Żabka,
+3.  Odległość od supermarketów (`dist_super_im`) – sklepy takie jak Biedronka, Lidl, Auchan itd.,
+4.  Gęstość zaludnienia w tys. mieszkańców na km² (`pop1k`) – zagregowana z siatki WorldPop 2026.
+
+```{r kowariaty_ppm_setup, message=FALSE, warning=FALSE}
+#Wczytujemy przystanki ZTM oraz bazę sklepów
+ztm_raw<-read.csv("ZTM_PRZYSTANKI.csv")
+ztm_sf<-st_as_sf(ztm_raw, coords=c("lon", "lat"), crs=4326) %>% st_transform(2180)
+
+sklepy_sf<-st_read("SKLEPY_MASTER.gpkg", quiet=TRUE) %>% st_transform(2180)
+conv_sf<-sklepy_sf %>% filter(kategoria=="Convenience")
+super_sf<-sklepy_sf %>% filter(kategoria=="Supermarket")
+
+#Tworzymy siatkę rastrową do obliczenia odległości euklidesowych
+grid_temp<-rast(ext(vect(warszawa_granica)), resolution=500, crs="EPSG:2180")
+waw_mask_r<-rasterize(vect(warszawa_granica), grid_temp, field=1)
+
+#Funkcja pomocnicza przeliczająca odległość na obiekt im w spatstat (w km)
+calc_dist_im<-function(pts_sf) {
+  r_pts<-rasterize(vect(pts_sf), grid_temp, field=1)
+  r_dist<-mask(distance(r_pts), waw_mask_r)/1000  # odległość w km
+  mat<-as.matrix(r_dist, wide=TRUE)[nrow(r_dist):1, ]
+  e<-ext(r_dist)
+  im_obj<-im(mat, xcol=seq(e[1], e[2], length.out=ncol(mat)),
+               yrow=seq(e[3], e[4], length.out=nrow(mat)))
+  rescale.im(im_obj, rsc)
+}
+
+dist_stop_im<-calc_dist_im(ztm_sf)
+dist_conv_im<-calc_dist_im(conv_sf)
+dist_super_im<-calc_dist_im(super_sf)
+
+#Populacja z WorldPop zagregowana do tys. mieszk./km²
+pop_proj<-project(r_pop_waw, "EPSG:2180")
+pop_resamp<-resample(pop_proj, grid_temp, method="sum")
+pop_masked<-mask(pop_resamp, waw_mask_r)
+mat_p<-as.matrix(pop_masked, wide = TRUE)[nrow(pop_masked):1, ]/1000
+e_p<-ext(pop_masked)
+pop_im<-rescale.im(im(mat_p, xcol=seq(e_p[1], e_p[2], length.out=ncol(mat_p)),
+                        yrow = seq(e_p[3], e_p[4], length.out=nrow(mat_p))), rsc)
+
+cov_list<-list(
+  dist_stop_im=dist_stop_im,
+  dist_conv_im=dist_conv_im,
+  dist_super_im=dist_super_im,
+  pop1k=pop_im
+)
+```
+
+**Po co tworzymy dwa modele?**
+
+- Model 1: Niejednorodny proces Poissona (`ppm`) to model naiwny (I rzędu). Zakłada on, że punkty APM są od siebie całkowicie niezależne i pojawiają się w przestrzeni wyłącznie pod wpływem kowariat.
+- Model 2: Proces klastrowy Thomasa (`kppm`) to model II rzędu. Uwzględnia on fakt, że automaty wzajemnie się przyciągają, tworząc klastry (skupiska).
+
+```{r estymacja_modeli_ppm, message=FALSE, warning=FALSE}
+formula_ppm<-APM.ppp.um ~ dist_stop_im + dist_conv_im + dist_super_im + pop1k
+
+#Model 1: Naiwny Poisson
+mod_poisson<-ppm(formula_ppm, data=cov_list)
+
+#Model 2: Proces klastrowy Thomasa
+mod_thomas<-kppm(formula_ppm, data=cov_list, clusters="Thomas", method="mincon")
+```
+
+Zestawienie oszacowań obu modeli w tabeli porównawczej:
+
+```{r tabela_modeli_porownanie, message=FALSE, warning=FALSE}
+cp<-summary(mod_poisson)$coefs
+ct<-summary(mod_thomas)$coefs.SE.CI
+pv_p<-2*pnorm(-abs(cp[, "Zval"]))
+pv_t<-2*pnorm(-abs(ct[, "Zval"]))
+
+nazwy_zmiennych<-c("Stała (Intercept)", "Odległość od ZTM (km)", "Odległość od Żabki (km)",
+                     "Odległość od supermarketu (km)", "Gęstość zaludnienia (tys./km²)")
+
+df_modele<-data.frame(
+  Zmienna=nazwy_zmiennych,
+  Beta=round(cp[, "Estimate"], 3),
+  Exp_Beta=round(exp(cp[, "Estimate"]), 3),
+  SE_Poisson=round(cp[, "S.E."], 4),
+  p_val_Poisson=format.pval(pv_p, eps=0.001, digits=3),
+  SE_Thomas=round(ct[, "S.E."], 4),
+  p_val_Thomas=format.pval(pv_t, eps=0.001, digits=3),
+  Mnoznik_SE=round(ct[, "S.E."]/cp[, "S.E."], 2)
+)
+
+knitr::kable(df_modele, caption="Porównanie modeli determinant alokacji APM w Warszawie")
+zapisz_tabele(df_modele, "tabela_06_modele_ppm_poisson_thomas")
+```
+
+**Wnioski z modelowania**
+
+- Otrzymane estymatory w modelu Poissona miały niższe błędy standardowe, przez co otrzymane p-value były sztucznie zaniżone. Przyjmując jednak poziom istotności równy 1%, zmianie uległa jedynie odległość od supermarketu. W przypadku 5% wszystkie zmienne okazały się statystycznie istotne.
+- Każdy dodatkowy kilometr odległości od przystanku komunikacji miejskiej ZTM zmniejsza gęstość APM o 66,2% zgodnie z formułą $(\exp(\hat{\beta}_{\text{ZTM}}) - 1) \times 100\% = (\exp(-1{,}085) - 1) \times 100\% = -66{,}2\%$.
+
+Pozostajemy jeszcze w temacie modelowania. Spójrzmy na oszacowane parametry struktury klastrowej procesu Thomasa:
+
+```{r parametry_klastra_thomas, message=FALSE, warning=FALSE}
+cl_par<-mod_thomas$clustpar
+mu_klaster<-if (!is.null(mod_thomas$mu) && is.numeric(mod_thomas$mu) && length(mod_thomas$mu) == 1) mod_thomas$mu else (npoints(APM.ppp.um)/area(Window(APM.ppp.um)))/cl_par["kappa"]
+mu_val<-as.numeric(mu_klaster)
+
+df_klaster<-data.frame(
+  Parametr=c("Gęstość centrów klastrów (kappa)",
+               "Promień rozrzutu klastra (sigma_kl)",
+               "Średnia wielkość skupiska (mu)"),
+  Wartość=c(
+    paste0(round(cl_par["kappa"], 2), " / km²"),
+    paste0(round(cl_par["scale"]*1000, 0), " m (", round(cl_par["scale"], 3), " km)"),
+    paste0(round(mu_val, 2), " APM / klaster")
+  ),
+  Interpretacja=c(
+    "Gęstość lokalnych ognisk przyciągania w przestrzeni miasta (~1 240 węzłów w Warszawie)",
+    "Odchylenie standardowe rozrzutu automatów wokół centrum (dwuwymiarowy rozkład Gaussa)",
+    "Przeciętna liczba paczkomatów tworzących jedno lokalne skupisko"
+  )
+)
+
+knitr::kable(df_klaster, caption="Parametry klastrowania drugiego rzędu procesu Thomasa (kppm)")
+zapisz_tabele(df_klaster, "tabela_07_parametry_klastra_thomasa")
+```
+
+**Lokalne parametry Thomasa**
+
+- Jak wiemy, model klastrowy Thomasa uwzględnia również klastrowanie, rozdzielając efekty na deterministyczny wpływ kowariat (zmienne dotyczące aktywności miejskiej mieszkańców) oraz na losowe skupianie się maszyn ($\hat{\kappa}$ oraz $\hat{\sigma}_{\text{kl}}$). Modelowanie przebiega dwuetapowo.
+- $\hat{\kappa} = 2{,}40/\text{km}^2$ (gęstość centrów klastrów): w Warszawie średnio powstaje ok. 2,4 skupiska APM na każdy km², co odpowiada $2{,}4 \times 517\text{ km}^2 \approx 1\,241\text{ skupisk}$ w całym mieście.
+- $\hat{\mu} = 3{,}04\text{ APM / klaster}$ (średnia wielkość skupiska): w modelu Thomasa średnia intensywność punktów to $\bar{\lambda} = \hat{\kappa} \cdot \hat{\mu}$. Dzieląc średnią gęstość automatów w Warszawie ($\bar{\lambda} = 3\,773 / 517{,}24 \approx 7{,}30/\text{km}^2$) przez gęstość centrów $\hat{\kappa}$, otrzymujemy:
+
+$$\hat{\mu} = \frac{\bar{\lambda}}{\hat{\kappa}} = \frac{7{,}30}{2{,}40} \approx \mathbf{3{,}04\text{ maszyny na klaster}}$$
+- $\hat{\sigma}_{\text{kl}} = 29\text{ m}$ (promień rozrzutu maszyn): wokół każdego ogniska maszyny lądują według dwuwymiarowego rozkładu normalnego o odchyleniu standardowym $\sigma_{\text{kl}} = 29\text{ m}$. Odległość euklidesowa $R$ od centrum klastra ma rozkład Rayleigha o dystrybuancie:
+  $$P(R \le r) = 1 - \exp\left(-\frac{r^2}{2\sigma_{\text{kl}}^2}\right)$$
+Podstawiając kolejne odległości $r$:
+
+- dla $r = 1\sigma = 29\text{ m}$: $P(R \le 29\text{ m}) = 1 - e^{-0{,}5} \approx \mathbf{39{,}3\%}$
+- dla $r = 2\sigma = 58\text{ m}$: $P(R \le 58\text{ m}) = 1 - e^{-2} \approx \mathbf{86{,}5\%}$
+- dla $r = 2{,}45\sigma \approx 71\text{ m}$: $P(R \le 71\text{ m}) = 1 - e^{-3} \approx \mathbf{95{,}0\%}$
+
+**Tabela sąsiedztwa, kto z kim najczęściej sąsiaduje**
+
+Model Thomasa szacuje estymatory dla wzorca unmarked (bez zróżnicowania na marki). Uzyskaliśmy lokalne klastry o promieniu ok. 60 metrów, które liczą średnio 3 maszyny. Skoro większość punktów znajduje się w odległości 58 metrów, to odwołajmy to do mark table, czyli jakie marki najczęściej znajdują się obok siebie:
+
+```{r marktable, message=FALSE, warning=FALSE, out.width="100%"}
+m.table<-marktable(APM.ppp.m, N=1, collapse=TRUE)
+m.table
+rowSums(m.table) #Łączna liczba punktów per marka
+df_mtable<-as.data.frame.matrix(m.table)
+zapisz_tabele(cbind(Marka=rownames(df_mtable), df_mtable), "tabela_08_marktable_sasiedztwo")
+```
+
+- Do tabeli możemy podejść w ten sposób, przykładowo dla DHL jest to wysoce prawdopodobne, że gdy weźmiemy klaster z automatem marki DHL, to w tym klastrze znajdzie się InPost, DPD oraz Orlen, wystarczy obliczyć udział danej marki w danym wierszu dla wybranej marki.
+- Dla marki DHL można też powiedzieć, że raczej stara się nie stawiać blisko automatu swojej marki. Inny wniosek można stwierdzić dla marki InPost (33,05%) oraz Allegro (28,25%), które często stawiają automaty tej samej marki bliżej swoich punktów niż innych. Może to też wynikać z efektu skali, przykładowo dla marki InPost, która ma aż 1 413 automatów w całej Warszawie.
+
+Sprawdźmy też czy powyższe wnioski mają sens i czy wynikają z położenia automatów w przestrzeni przy użyciu testu segregacji przestrzennej.
+
+Test segregacji sprawdza czy etykietowanie punktów APM ma znaczenie, w skrócie, badamy poniższe hipotezy:
+- Hipoteza zerowa H0: losowe etykietowanie: dla marki nie ma to kompletnie znaczenia, w którym miejscu postawi punkt APM
+- H1: etykietowanie ma znaczenie: marki preferują określone lokalizacje w przestrzeni
+
+```{r segregacja, message=FALSE, warning=FALSE, out.width="100%"}
+segregation.test(APM.ppp.m, nsim=99, sigma=sigma, verbose=FALSE)
+```
+
+**Wniosek:** Wartość p-value ($p = 0{,}01$, statystyka $T = 217{,}97$) uzyskana w drodze testu wskazuje, że istnieją podstawy do odrzucenia hipotezy zerowej o tym, że marki stawiają punkty APM w losowych punktach (brak segregacji przestrzennej).
+
+# Podsumowanie i Wnioski Końcowe
+
+Przeprowadziliśmy analizę przy użyciu wzorca punktowego oraz przestrzennej konkurencji rynkowej (sHHI) dla automatów paczkowych (APM) w Warszawie, od klastrowania po modelowanie. Pracę można podsumować do 3 kluczowych wniosków:
+
+1. Punkty APM w Warszawie są rozmieszczone zgodnie ze skupionym wzorcem punktowym. Potwierdza to zarówno funkcja K-Ripleya jak i przeprowadzone modelowanie oraz testy statystyczne. Średnia wielkość klastra wynosi w przybliżeniu 3 punkty na klaster, a w zdecydowanej większości przypadków, maszyny są rozmieszczone w promieniu 58 metrów.
+2. Rynek logistyczny jest ściśle skoncentrowany w rękach niektórych firm (głównie InPost, około 40,1% przestrzennej koncentracji). Przewaga ta nie bierze się z pojedynczych punktów, lecz z gęstej sieci punktów na mapie.
+3. Na rozmieszczenie punktów ma wpływ aktywność miejska mieszkańców, a dokładniej, odległość od punktów gdzie przemieszczają się mieszkańcy oraz gęstość zaludnienia w danym miejscu.
+
+# Bibliografia
+
+**Artykuły naukowe**
+
+- Eaton, B. C., & Lipsey, R. G. (1975). The Principle of Minimum Differentiation Reconsidered: Some New Developments in the Theory of Spatial Competition. The Review of Economic Studies, 42(1), 27. https://doi.org/10.2307/2296817
+- Hotelling, H. (1929). Stability in Competition. The Economic Journal, 39(153), 41. https://doi.org/10.2307/2224214
+- Jaworski, N., & Kopczewski, T. (2026). A spatial Herfindahl–Hirschman Index for inter- and intra-type competition. Spatial Economic Analysis, 1–18. https://doi.org/10.1080/17421772.2026.2692317
+- Kang, X. (2025). Spatial Pattern and Influencing Factor Analysis of Parcel Lockers in London. E3S Web of Conferences, 617, 02004. https://doi.org/10.1051/e3sconf/202561702004
+- Schaefer, J. S., & Figliozzi, M. A. (2021). Spatial accessibility and equity analysis of Amazon parcel lockers facilities. Journal of Transport Geography, 97, 103212. https://doi.org/10.1016/j.jtrangeo.2021.103212
+
+**Metody statystyczne**
+
+- Baddeley, A., Rubak, E., & Turner, R. (2015). Spatial Point Patterns: Methodology and Applications with R (0 wyd.). Chapman and Hall/CRC. https://doi.org/10.1201/b19708
+- Bondarenko, M., Priyatikanto, R., Tejedor Garavito, N., Zhang, W., McKeen, T., Cunningham, A., Woods, T., Hilton, J., Cihan, D., Nosatiuk, B., Brinkhoff, T., Tatem, A., & Sorichetta, A. (2025). Constrained estimates of 2015-2030 total number of people per grid square at a resolution of 3 arc (approximately 100m at the equator) R2025A version v1. [Dataset]. University of Southampton. https://doi.org/10.5258/SOTON/WP00839
+- Clark, P. J., & Evans, F. C. (1954). Distance to Nearest Neighbor as a Measure of Spatial Relationships in Populations. Ecology, 35(4), 445–453. https://doi.org/10.2307/1931034
+- Diggle, P., Zheng, P., & Durr, P. (2005). Nonparametric Estimation of Spatial Segregation in a Multivariate Point Process: Bovine Tuberculosis in Cornwall, UK. Journal of the Royal Statistical Society Series C: Applied Statistics, 54(3), 645–658. https://doi.org/10.1111/j.1467-9876.2005.05373.x
+- Ripley, B. D. (1977). Modelling Spatial Patterns. Journal of the Royal Statistical Society Series B: Statistical Methodology, 39(2), 172–192. https://doi.org/10.1111/j.2517-6161.1977.tb01615.x
+- Thomas, M. (1949). A GENERALIZATION OF POISSON’S BINOMIAL LIMIT FOR USE IN ECOLOGY. Biometrika, 36(1–2), 18–25. https://doi.org/10.1093/biomet/36.1-2.18
+
+# Adnotacja oraz dostępność danych
+
+- Lokalizacja przystanków komunikacji miejskiej (ZTM) pochodzi z serwisu Otwarte Dane Warszawa https://dane.um.warszawa.pl/pl
+- Granice administracyjne pochodzą z Państwowego Rejestru Granic (GUGiK)
+- Gęstość zaludnienia pochodzi z siatki demograficznej WorldPop z projekcją 2026 w rozdzielczości 100m. Bondarenko M., Priyatikanto R., Tejedor-Garavito N., Zhang W., McKeen T., Cunningham A., Woods T., Hilton J., Cihan D., Nosatiuk B., Brinkhoff T., Tatem A., Sorichetta A.. 2025 Constrained estimates of 2015-2030 total number of people per grid square at a resolution of 3 arc (approximately 100m at the equator) R2025A version v1. Global Demographic Data Project - Funded by The Bill and Melinda Gates Foundation (INV-045237). WorldPop - School of Geography and Environmental Science, University of Southampton. DOI:10.5258/SOTON/WP00839 
+- Dane dotyczące geolokalizacji punktów APM oraz sklepów zostały zebrane ze stron operatorów oraz marek. Obydwa te zbiory nie są udostępniane.
+
+Podczas przygotowywania pracy wykorzystano model AI: Gemini 3.8 flash
