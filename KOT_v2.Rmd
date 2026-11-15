@@ -81,11 +81,11 @@ showtext_auto()
 
 ## Model Hotellinga: wprowadzenie teoretyczne
 
-Punkt wyjścia analizy stanowi opisywany w mikroekonomii model Hotellinga z 1929 roku, zgodnie z którym pomimo że optymalna społecznie, tak aby dystans między punktami z punktu widzenia klienta był jak najmniejszy, oraz "gospodarczo" lokalizacja biznesu wskazuje, że firmy powinny lokować swoje punkty w pewnej odległości między sobą, tak aby maksymalizować liczbę klientów, a tym samym uzyskiwany zysk, jednak zachowują się inaczej, a dokładnie lokalizują swoje firmy/punkty w jednym miejscu, tuż obok konkurenta, zagarniając tym samym po 1/2 rynku. Połowę rynku można też otrzymać, gdy firmy ulokują swoje punkty w punktach 1/4 i 3/4, co byłoby optymalne społecznie, lecz te punkty nie stanowią równowagi Nasha, bo jedna z firm może przesunąć swój punkt bliżej połowy, zagarniając tym samym większą część rynku, tym samym poprawiając swoją sytuację kosztem drugiej firmy.
+Punkt wyjścia analizy stanowi klasyczny model Hotellinga (1929). Choć z perspektywy społecznej i minimalizacji dystansu pieszego dla klientów optymalne byłoby równomierne rozproszenie firm w przestrzeni (w punktach 1/4 i 3/4), to w warunkach konkurencji przestrzennej jedyną równowagą Nasha dla duopolu jest zbieżność do środka rynku (1/2), co Hotelling określił jako *zasadę minimalnego zróżnicowania*.
 
-W przypadku większej liczby firm niż dwie... sprawa się komplikuje. Dla 3 firm równowaga wcale nie istnieje, bo każdy z graczy może przesunąć się, poprawiając tym samym swoją sytuację i pogarszając sytuację pozostałych dwóch graczy. Co gorsza, przy 3 firmach nie da się wyznaczyć równowagi Nasha. Dla 4 firm stabilnym rozwiązaniem okazuje się łączenie w pary, gdzie firmy grupują się po dwie w punktach 1/4 oraz 3/4.
+W przypadku większej liczby graczy sprawa się komplikuje. Jak wykazali Lerner i Singer (1937), a formalnie usystematyzowali Eaton i Lipsey (1975), dla 3 firm równowaga w czystych strategiach na rynku liniowym w ogóle nie istnieje. Gracz uwięziony pomiędzy dwoma konkurentami otrzymuje zbyt mały udział rynkowy i zawsze opłaca mu się przeskoczyć na zewnątrz rywali, przez co równowaga Nasha dla 3 firm nie istnieje.
 
-Eaton i Lipsey (1975) w swojej pracy rozwinęli model Hotellinga, a powyższe zjawisko nazwali zasadą lokalnego klastrowania, wykazując, że model Hotellinga jest poprawny jedynie dla 2 firm. W rzeczywistości, firmy mają tendencję do tworzenia lokalnych skupisk.
+Dopiero dla 4 firm stabilnym rozwiązaniem okazuje się łączenie w pary w pierwszym i trzecim kwartylu (1/4 oraz 3/4). Eaton i Lipsey (1975) uogólnili ten wynik na dowolną liczbę graczy ($n \ge 4$), formułując *zasadę lokalnego klastrowania*: zamiast jednego centralnego skupiska, firmy mają tendencję do tworzenia lokalnych skupisk w przestrzeni, grupując się co najwyżej po dwie w jednym punkcie. W logistyce miejskiej zjawisko to przejawia się ko-lokacją automatów konkurencyjnych marek przy tych samych kluczowych generatorach popytu.
 
 ## Literatura empiryczna: w świetle badań rynku APM
 
@@ -587,7 +587,7 @@ Każda maszyna dostaje swoją komórkę Woronoja, a jej udział jest wyliczony p
 
 - $sHHI_{\text{ALL}}$ (bez patrzenia na marki): $0{,}1600 + 0{,}0900 + 0{,}0225 + 0{,}0100 + 0{,}0025 = \mathbf{0{,}2850}$\
 - $sHHI_{\text{INTER}}$ (łączymy udziały w ramach marek): InPost ($0{,}40 + 0{,}15 = 0{,}55$), DPD ($0{,}30 + 0{,}10 = 0{,}40$), Allegro ($0{,}05$) $\implies 0{,}55^2 + 0{,}40^2 + 0{,}05^2 = 0{,}3025 + 0{,}1600 + 0{,}0025 = \mathbf{0{,}4650}$\
-- **Luka kanibalizacji** ($\Delta = sHHI_{\text{INTER}} - sHHI_{\text{ALL}}$): $0{,}4650 - 0{,}2850 = \mathbf{0{,}1800}$ (efekt posiadania wielu maszyn przez te same firmy: $2 \cdot 0{,}40 \cdot 0{,}15 + 2 \cdot 0{,}30 \cdot 0{,}10 = 0{,}1800$)\
+- Luka kanibalizacji ($\Delta = sHHI_{\text{INTER}} - sHHI_{\text{ALL}}$): $0{,}4650 - 0{,}2850 = \mathbf{0{,}1800}$ (efekt posiadania wielu maszyn przez te same firmy: $2 \cdot 0{,}40 \cdot 0{,}15 + 2 \cdot 0{,}30 \cdot 0{,}10 = 0{,}1800$)\
 - Zagnieżdżony indeks $NSCI(\alpha = 0{,}60)$: $0{,}60 \cdot 0{,}4650 + 0{,}40 \cdot 0{,}2850 = \mathbf{0{,}3930}$.
 
 Metoda druga sprawdza, co by było gdyby dana sieć była jedynym operatorem w danym mieście? Dzięki temu możemy zbadać zarówno wewnętrzną kanibalizację u operatora ($sHHI_{\text{INTRA}}$), jak i równomierność pokrycia miasta:
@@ -684,7 +684,7 @@ knitr::kable(df_udzialy_marek, caption="")
 zapisz_tabele(df_udzialy_marek, "tabela_03_udzialy_marek_shhi")
 ```
 
-**Podsumowanie w tabeli:**
+Podsumowanie w tabeli:
 
 ```{r tabela_shhi_wyniki_ogolne, message=FALSE, warning=FALSE}
 df_shhi_ogolne<-data.frame(
@@ -730,11 +730,11 @@ zapisz_tabele(df_intra, "tabela_05_porownanie_intra_inpost_dpd")
 
 **Wnioski:**
 
-- **sHHI_ALL = 0,00074:** Nie istnieje pojedynczy automat monopolista przejmujący dużą część rynku w skali całej Warszawy (wartość jest bardzo niska, choć nadal `2,80×` wyższa od teoretycznego benchmarku pełnej równomierności $1/N = 0{,}00027$).
-- **sHHI_INTER = 0,26195:** Na poziomie marek rynek jest wyraźnie skoncentrowany. Sam indeks nie wskazuje nazwy lidera, ale z tabeli udziałów widać, że **InPost** kontroluje `40,1%` przestrzennego popytu, a **DPD** `20,9%`.
-- **Luka kanibalizacji** $\Delta = 0,26121$: Przewaga marek nie bierze się z pojedynczej maszyny, lecz z bardzo dużej liczby automatów i nakładania się na rywali. Marki stawiają maszyny tak gęsto, że przejmują ruch zarówno od konkurencji, jak i od własnych sąsiednich automatów (autokanibalizacja).
-- **Zagnieżdżony indeks** $NSCI(0{,}60) = 0,15747$: Łączy dominację na poziomie marek ($w = 0{,}6$) ze skupieniem popytu na poziomie pojedynczych punktów ($1 - w = 0{,}4$).
-- **Porównanie InPost vs DPD (`sHHI_INTRA`):** InPost ma najniższy wskaźnik `0,00136` i asymetrię pokrycia **`1,92×`** (równomierne pokrycie miasta przy silnej autokanibalizacji), podczas gdy DPD osiąga `0,00270` i asymetrię **`2,29×`** (większa koncentracja w wybranych dzielnicach).
+- sHHI_ALL = 0,00074: Nie istnieje pojedynczy automat monopolista przejmujący dużą część rynku w skali całej Warszawy (wartość jest bardzo niska, choć nadal `2,80×` wyższa od teoretycznego benchmarku pełnej równomierności $1/N = 0{,}00027$).
+- sHHI_INTER = 0,26195: Na poziomie marek rynek jest wyraźnie skoncentrowany. Sam indeks nie wskazuje nazwy lidera, ale z tabeli udziałów widać, że InPost kontroluje `40,1%` przestrzennego popytu, a DPD `20,9%`.
+- Luka kanibalizacji $\Delta = 0,26121$: Przewaga marek nie bierze się z pojedynczej maszyny, lecz z bardzo dużej liczby automatów i nakładania się na rywali. Marki stawiają maszyny tak gęsto, że przejmują ruch zarówno od konkurencji, jak i od własnych sąsiednich automatów (autokanibalizacja).
+- Zagnieżdżony indeks $NSCI(0{,}60) = 0,15747$: Łączy dominację na poziomie marek ($w = 0{,}6$) ze skupieniem popytu na poziomie pojedynczych punktów ($1 - w = 0{,}4$).
+- Porównanie InPost vs DPD (`sHHI_INTRA`): InPost ma najniższy wskaźnik `0,00136` i asymetrię pokrycia `1,92×` (równomierne pokrycie miasta przy silnej autokanibalizacji), podczas gdy DPD osiąga `0,00270` i asymetrię `2,29×` (większa koncentracja w wybranych dzielnicach).
 
 **Narysujmy teraz 3 mapy:**
 1. Cały rynek w obecności konkurentów (ALL),
@@ -804,14 +804,14 @@ ggsave(file.path(dir_wykresy, "wykres_tripanel_voronoi.svg"), plot=p_tripanel, w
 print(p_tripanel)
 ```
 
-## Modelowanie ekonometryczne: Co naprawdę przyciąga paczkomaty? (PPM vs Thomas)
+## Modelowanie ekonometryczne
 
 Przeanalizowaliśmy rozkład i zależności przestrzenne automatów w Warszawie, teraz przyszedł czas na pytanie jakie czynniki powodują, że automaty są rozmieszczone w takim a nie innym miejscu. W swojej pracy postanowiłem zbadać czy o danej lokalizacji decyduje codzienna aktywność miejska mieszkańców, zarówno liczba osób mieszkających w okolicy jak i ruch w miejscach, przez które przechodzimy na co dzień (wysiadając z komunikacji miejskiej czy robiąc zakupy). W tym celu przygotowałem 4 determinanty (kowariaty):
 
-1.  Odległość od przystanków komunikacji miejskiej ZTM (`dist_stop_im`) – węzły przesiadkowe generujące ruch pieszy,
-2.  Odległość od sklepów typu Convenience (`dist_conv_im`) – reprezentowanych głównie przez sieć Żabka,
-3.  Odległość od supermarketów (`dist_super_im`) – sklepy takie jak Biedronka, Lidl, Auchan itd.,
-4.  Gęstość zaludnienia w tys. mieszkańców na km² (`pop1k`) – zagregowana z siatki WorldPop 2026.
+1.  Odległość od przystanków komunikacji miejskiej ZTM (`dist_stop_im`): węzły przesiadkowe generujące ruch pieszy,
+2.  Odległość od sklepów typu Convenience (`dist_conv_im`): reprezentowanych głównie przez sieć Żabka,
+3.  Odległość od supermarketów (`dist_super_im`): sklepy takie jak Biedronka, Lidl, Auchan itd.,
+4.  Gęstość zaludnienia w tys. mieszkańców na km² (`pop1k`): zagregowana z siatki WorldPop 2026.
 
 ```{r kowariaty_ppm_setup, message=FALSE, warning=FALSE}
 #Wczytujemy przystanki ZTM oraz bazę sklepów
@@ -908,8 +908,7 @@ Pozostajemy jeszcze w temacie modelowania. Spójrzmy na oszacowane parametry str
 
 ```{r parametry_klastra_thomas, message=FALSE, warning=FALSE}
 cl_par<-mod_thomas$clustpar
-mu_klaster<-if (!is.null(mod_thomas$mu) && is.numeric(mod_thomas$mu) && length(mod_thomas$mu) == 1) mod_thomas$mu else (npoints(APM.ppp.um)/area(Window(APM.ppp.um)))/cl_par["kappa"]
-mu_val<-as.numeric(mu_klaster)
+mu_val<-as.numeric((npoints(APM.ppp.um)/spatstat.geom::area.owin(Window(APM.ppp.um)))/cl_par["kappa"])
 
 df_klaster<-data.frame(
   Parametr=c("Gęstość centrów klastrów (kappa)",
